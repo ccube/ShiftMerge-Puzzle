@@ -1,0 +1,11 @@
+# Emacs artifacts
+*~
+*#*
+
+# Temporary files that I (ccube) tend to create during development
+*.dat
+*.out
+*.log
+*.txt
+*.tmp
+x_*
