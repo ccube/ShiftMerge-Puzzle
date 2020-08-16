@@ -161,15 +161,15 @@ proc move {d} {
     global msg
     global cell
 
-    if {[shift $d] == 0} {set msg "shift $d didn't do anything"; return}
+    if {[shift $d] == 0} {set msg "Can't shift $d"; return}
 
     set msg {}
     
     if {! [full]} {insert}
 
     if {! [playable]} {
-	set msg "Game over"
-	.f.tab4 configure -bg red
+	set msg "Game Over"
+	.f.tab4 configure -bg black
 	bindkeys 1
     }
 }
@@ -211,7 +211,7 @@ for {set i 0} {$i < 4} {incr i} {
 grid rowconfigure .f.tab4 all -minsize 100
 grid columnconfigure .f.tab4  all -minsize 100
 
-pack [label .f.msg -textvariable msg -width 60 -bg white -fg red] \
+pack [label .f.msg -textvariable msg -width 60 -font MsgFont -bg white -fg red] \
     -side left -padx 5 -pady 10
 pack [button .f.but -text "Start New Game" -command restart] \
     -side right -padx 5 -pady 10
