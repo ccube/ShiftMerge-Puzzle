@@ -9,7 +9,7 @@ a GUI on another project. So until it matures, don't expect it to be an
 example of good Tcl/Tk usage.
 
 I chose Cirulli's 2048 as a model since I've enjoyed it as a light weight
-pastime when I'm waiting for something. and it won't require me to learn
+pastime when I'm waiting for something, and it won't require me to learn
 anything else but Tcl/Tk itself. With that game, I'd always wanted a
 way to undo my last move, so I'm aiming to provide that here. It would also be
 fun to experiment with the size of the field, the relative frequency of the

@@ -98,6 +98,7 @@ proc shift {d {gridname cell}} {
 	}
     }
 
+    # number of changed rows or columns
     set changes 0
 
     for {set i 0} {$i < 4} {incr i} {
@@ -106,7 +107,6 @@ proc shift {d {gridname cell}} {
 	set vals {}
 	set merge 0
 	
-	# number of changed rows or columns
 	
 	foreach k $ckeys {
 	    set v $c($k)
@@ -125,6 +125,18 @@ proc shift {d {gridname cell}} {
 	
 	# if vals is empty or full, there's nothing to change for this row/col
 	if {$vcnt == 0 || $vcnt == 4} {continue}
+
+	
+	set cdiff 0
+
+	for {set k 0} {$k < $vcnt} {incr k} {
+	    if {[lindex $vals $k] ne $c([lindex $ckeys $k])} {
+		set cdiff 1;
+		break
+	    }
+	}
+
+	if {! $cdiff} {continue}
 
 	incr changes
 
@@ -157,6 +169,7 @@ proc move {d} {
 
     if {! [playable]} {
 	set msg "Game over"
+	.f.tab4 configure -bg red
 	bindkeys 1
     }
 }
@@ -166,6 +179,7 @@ proc restart {} {
     global cell
 
     set msg {}
+    .f.tab4 configure -bg gray80
     clear
     insert; insert
     bindkeys
@@ -181,6 +195,7 @@ pack [label .f.inst -text "Use arrow keys to shift"]
 pack [frame .f.tab4 -bg gray80 -bd 2 -relief solid]
 
 font create CellFont -family "Comic Sans MS" -size 20
+font create MsgFont  -family Arial -size 14
 
 for {set i 0} {$i < 4} {incr i} {
     for {set j 0} {$j < 4} {incr j} {
@@ -196,8 +211,10 @@ for {set i 0} {$i < 4} {incr i} {
 grid rowconfigure .f.tab4 all -minsize 100
 grid columnconfigure .f.tab4  all -minsize 100
 
-pack [label .f.msg -textvariable msg -width 60] -side left
-pack [button .f.but -text "Start New Game" -command restart] -side right
+pack [label .f.msg -textvariable msg -width 60 -bg white -fg red] \
+    -side left -padx 5 -pady 10
+pack [button .f.but -text "Start New Game" -command restart] \
+    -side right -padx 5 -pady 10
 
 event add <<arrows>> <Up> <Down> <Left> <Right>
 
