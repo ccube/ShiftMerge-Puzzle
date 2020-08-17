@@ -70,11 +70,12 @@ proc bindkeys {{gameover 0}} {
     global msg
     
     if {$gameover} {
-	bind . <<arrows>>   {set msg "Click Start New Game"}
+	bind . <<Arrows>>   {set msg "Click Start New Game"}
+	bind . <<CellUndo>> {set msg "Can't Undo after Game Over"}
     } else {
-	bind . <<arrows>> {move %K}
+	bind . <<Arrows>>   {move %K}
+	bind . <<CellUndo>> {undo}
     }
-    bind . <BackSpace> {set msg "Undo is not yet implemented"}
 }
 
 
@@ -147,7 +148,10 @@ proc shift {d {gridname cell}} {
 proc move {d} {
     global msg
     global cell
+    global undostack
 
+    set state [array get cell]
+    
     if {[shift $d] == 0} {set msg "Can't shift $d"; return}
 
     set msg {}
@@ -158,13 +162,31 @@ proc move {d} {
 	set msg "Game Over"
 	.f.tab4 configure -bg black
 	bindkeys 1
+    } else {
+	lappend undostack $state
+    }
+}
+
+proc undo {} {
+    global msg
+    global cell
+    global undostack
+
+    if {[llength $undostack] == 0} {
+	set msg "Can't Undo any further"
+    } else {
+	set prevstate [lindex $undostack end]
+	set undostack [lreplace $undostack end end]
+	array set cell $prevstate
     }
 }
 
 proc restart {} {
     global msg
     global cell
+    global undostack
 
+    set undostack {}
     set msg {}
     .f.tab4 configure -bg gray80
     clear
@@ -211,7 +233,8 @@ array set cbgpall {
 }
 wm title . "Shift-Merge"
 pack [frame .f -padx 5 -pady 5]
-pack [label .f.inst -text "Use arrow keys to shift"]
+pack [label .f.inst \
+	  -text "Use arrow keys to shift, BackSpace or Control-z to Undo"]
 
 pack [frame .f.tab4 -bg gray80 -bd 2 -relief solid]
 
@@ -239,6 +262,9 @@ pack [label .f.msg -textvariable msg -width 30 -font MsgFont -fg red] \
 pack [button .f.but -text "Start New Game" -command restart] \
     -side right -padx 5 -pady 10
 
-event add <<arrows>> <Up> <Down> <Left> <Right>
+event add <<Arrows>> <Up> <Down> <Left> <Right>
+event add <<CellUndo>> <BackSpace> <Control-z>
+
+set undostack {}
 
 restart
