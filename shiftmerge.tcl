@@ -238,13 +238,12 @@ array set cbgpall {
     4096    #7CFF6B
     8192    #61FF4C
 }
-set bgDefault seashell
 
-. configure -bg $bgDefault
+tk_setPalette seashell
 
 wm title . "Shift-Merge"
-pack [frame .f -padx 5 -pady 5 -bg $bgDefault]
-pack [label .f.inst -bg $bgDefault \
+pack [frame .f -padx 5 -pady 5]
+pack [label .f.inst  \
 	  -text "Use arrow keys to shift, BackSpace or Control-z to Undo"]
 
 pack [frame .f.tab4 -bg gray80 -bd 2 -relief solid]
@@ -271,19 +270,19 @@ grid columnconfigure .f.tab4  all -minsize 100
 set prob4Default 0.2
 set prob4 $prob4Default
 
-pack [frame .f.prob4 -bg $bgDefault] -pady 10
-pack [scale .f.prob4.sc -orient horizontal -bg $bgDefault \
+pack [frame .f.prob4] -pady 10
+pack [scale .f.prob4.sc -orient horizontal \
 	  -from 0.0 -to 1.0 -tickinterval 0 \
 	  -length 200 -resolution -1 \
 	  -variable prob4 -showvalue 1 \
 	  -label "Probability of 4 insertion"] \
     -side left -padx 10
-pack [button .f.prob4.reset -text "Set to Default" -bg $bgDefault \
+pack [button .f.prob4.reset -text "Set to Default" \
 	  -command resetprob4] -side right -padx 10
 
 pack [label .f.msg -textvariable msg -width 30 -font MsgFont \
-	  -fg red -bg $bgDefault] -side left -padx 5 -pady 10 
-pack [button .f.but -text "Start New Game" -command restart -bg $bgDefault] \
+	  -fg red] -side left -padx 5 -pady 10 
+pack [button .f.but -text "Start New Game" -command restart] \
     -side right -padx 5 -pady 10
 
 event add <<Arrows>> <Up> <Down> <Left> <Right>
