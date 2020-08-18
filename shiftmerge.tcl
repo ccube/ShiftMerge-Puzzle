@@ -19,8 +19,10 @@ proc full {{gridname cell}} {
 }
 
 # insert 2 or 4 randomly into cells
-proc insert {{gridname cell}} {
-    upvar 1 $gridname cell
+proc insert {} {
+    global cell
+    global prob4
+    
     set empty {}
     foreach {k v} [array get cell] {
 	if {$v eq {}} {
@@ -32,7 +34,7 @@ proc insert {{gridname cell}} {
 
     if {! $cnt} {error "Attempt to insert into a full grid"}
 
-    set newnum [if {int(rand()*10)} {expr 2} {expr 4}]
+    set newnum [if {rand() > $prob4} {expr 2} {expr 4}]
     set empndx [expr {int(rand()*$cnt)}]
     set cellndx [lindex $empty $empndx]
     
@@ -211,7 +213,12 @@ proc changebg {n1 n2 notused} {
     }
 }
 
+proc resetprob4 {} {
+    global prob4Default
+    global prob4
 
+    set prob4 $prob4Default
+}
 #================================================================
 # Layout
 
@@ -231,9 +238,11 @@ array set cbgpall {
     4096    #7CFF6B
     8192    #61FF4C
 }
+set bgDefault seashell
+
 wm title . "Shift-Merge"
-pack [frame .f -padx 5 -pady 5]
-pack [label .f.inst \
+pack [frame .f -padx 5 -pady 5 -bg $bgDefault]
+pack [label .f.inst -bg $bgDefault \
 	  -text "Use arrow keys to shift, BackSpace or Control-z to Undo"]
 
 pack [frame .f.tab4 -bg gray80 -bd 2 -relief solid]
@@ -257,9 +266,22 @@ trace add variable cell write changebg
 grid rowconfigure .f.tab4 all -minsize 100
 grid columnconfigure .f.tab4  all -minsize 100
 
-pack [label .f.msg -textvariable msg -width 30 -font MsgFont -fg red] \
-    -side left -padx 5 -pady 10
-pack [button .f.but -text "Start New Game" -command restart] \
+set prob4Default 0.2
+set prob4 $prob4Default
+
+pack [frame .f.prob4 -bg $bgDefault] -pady 10
+pack [scale .f.prob4.sc -orient horizontal -bg $bgDefault \
+	  -from 0.0 -to 1.0 -tickinterval 0 \
+	  -length 200 -resolution -1 \
+	  -variable prob4 -showvalue 1 \
+	  -label "Probability of 4 insertion"] \
+    -side left -padx 10
+pack [button .f.prob4.reset -text "Set to Default" -bg $bgDefault \
+	  -command resetprob4] -side right -padx 10
+
+pack [label .f.msg -textvariable msg -width 30 -font MsgFont \
+	  -fg red -bg $bgDefault] -side left -padx 5 -pady 10 
+pack [button .f.but -text "Start New Game" -command restart -bg $bgDefault] \
     -side right -padx 5 -pady 10
 
 event add <<Arrows>> <Up> <Down> <Left> <Right>
