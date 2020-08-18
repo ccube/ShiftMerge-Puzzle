@@ -240,6 +240,8 @@ array set cbgpall {
 }
 set bgDefault seashell
 
+. configure -bg $bgDefault
+
 wm title . "Shift-Merge"
 pack [frame .f -padx 5 -pady 5 -bg $bgDefault]
 pack [label .f.inst -bg $bgDefault \
