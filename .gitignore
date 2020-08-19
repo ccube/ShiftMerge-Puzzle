@@ -9,3 +9,6 @@
 *.txt
 *.tmp
 x_*
+
+# Sandbox directory for tcl/tk experiments; may have its own repository
+sandbox/
