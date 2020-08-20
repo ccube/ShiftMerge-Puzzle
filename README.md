@@ -17,6 +17,8 @@ fun to experiment with the size of the field, the relative frequency of the
 of play, they will all have these features in common:
 
 - a square grid of cells that are either empty or contain compatible elements
+- at the start, a few elements are randomly inserted and after each move
+(if there's space) a single element is randomly inserted
 - arrow keys shift elements into empty cells in the direction of the arrow,
 leaving all empty spaces on the side of the grid opposite to the shift
 - if, after a shift, adjacent non-empty elements meet conditions for the mode,
