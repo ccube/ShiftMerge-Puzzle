@@ -2,11 +2,11 @@
 package require Tcl 8.6
 package require Tk 8.6
 
+source roundRect.tcl
+
 namespace eval pzl {
 
-  namespace export puzzle roundRect
-
-  source roundRect.tcl
+  namespace export puzzle
 
   set Default_Prob4 0.2
   set Instructions {Use arrow keys to shift, BackSpace or Control-z to Undo}
@@ -34,7 +34,7 @@ namespace eval pzl {
   set CellSize 80
   set CellSpacing 15
   set CellRadius 14
-  set NormalCnvBg seashell; #changed in Canvas_init to current bg of Canvas
+  set NormalCnvBg bisque3
   set WarnCnvBg LightYellow4
   set OverCnvBg red3
   array set CellBg {
@@ -98,6 +98,8 @@ namespace eval pzl {
 
       array set argarr $args
 
+      set cell_asl {}
+
       foreach {opt val} $args {
         switch $opt {
           -cells {
@@ -117,7 +119,7 @@ namespace eval pzl {
               if {![info exists pzl::Valid_Elements($v)]} {
                 error "-cells arg list val not in pzl::Valid_Elements"
               }
-
+              set cell_asl $val
               set cells($k) $v
             }
           }
@@ -138,6 +140,9 @@ namespace eval pzl {
 
       if {$canvas ne {}} {
         my Canvas_init
+        if {$cell_asl ne {}} {
+          my Canvas_update $cell_asl
+        }
       }
     } ;# End constructor
 
@@ -150,7 +155,7 @@ namespace eval pzl {
         return $prob4
       }
 
-      if {! [regexp {^0?\.\d+$} $nv]} {
+      if {! [regexp {^(1\.0+|0?\.\d+)$} $nv]} {
         error "arg to prob4 not a number >= 0 and <= 1.0"
       }
       return [set prob4 $nv]
@@ -159,7 +164,7 @@ namespace eval pzl {
     # Not exported
     method Canvas_init {} {
       my variable canvas
-      set pzl::NormalCnvBg [lindex [$canvas configure -bg] 4]
+      $canvas configure -bg $pzl::NormalCnvBg
 
       set canvsize [expr {4 * $pzl::CellSize + 5* $pzl::CellSpacing}]
       $canvas configure -width $canvsize -height $canvsize
@@ -225,6 +230,16 @@ namespace eval pzl {
       }
     } ;# End method update_cells
 
+    method full {} {
+      my variable cells
+
+      set emptycnt 0
+      foreach k [array names cells] {
+        if {$cells($k) eq {}} {incr emptycnt}
+      }
+      return [expr {! $emptycnt}]
+    } ;# End method full
+
     method clear {} {
       my variable cells
 
@@ -236,8 +251,8 @@ namespace eval pzl {
       my Update_cells $asl
     }
 
-    method insert {{prob4 $pzl::Default_Prob4}} {
-      my variable cells
+    method insert {} {
+      my variable cells prob4
 
       set empty {}
       foreach {k v} [array get cells] {
@@ -351,21 +366,19 @@ namespace eval pzl {
 
     # True if a move can be made, false otherwise
     method playable {} {
-      my varable cells
-      if {! [my full]} [return 1]
+      my variable cells
+      if {! [my full]} {return 1}
 
-      puzzle create tst -cells [array get cells]
+      set tst [pzl::puzzle new -cells [array get cells]]
 
       # note that for non-playable grid nothing changes under shift
       foreach d {Up Down Left Right} {
-        tst shift $d
-        if {! [tst full]} {
-          tst destroy
+        if {[$tst shift $d]} {
           return 1
         }
       }
 
-      tst destroy
+      $tst destroy
       return 0
     } ;# End method playable
 

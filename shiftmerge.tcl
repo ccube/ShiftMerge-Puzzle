@@ -9,71 +9,76 @@ source puzzle.tcl
 # Procedure definitions
 
 proc bindkeys {{gameover 0}} {
-    global msg
-
-    if {$gameover} {
-	bind . <<Arrows>>   {set msg "Click Start New Game"}
-	bind . <<CellUndo>> {set msg "Can't Undo after Game Over"}
+  if {$gameover} {
+    bind . <<Arrows>>   {set ::msg "Click Start New Game"}
+    bind . <<CellUndo>> {set ::msg "Can't Undo after Game Over"}
     } else {
-	bind . <<Arrows>>   {move %K}
-	bind . <<CellUndo>> {undo}
+      bind . <<Arrows>>   {move %K}
+      bind . <<CellUndo>> {$::game undo}
     }
 }
 
+proc chgprob4 {p} {
+  $::game prob4 $p
+}
+proc resetprob4 {} {
+  set ::prob4 $pzl::Default_Prob4
+  $::game prob4 $::prob4
+}
+
+proc move {d} {
+  set ans [$::game move $d]
+  if {$ans == 1} {
+    set ::msg "Can't shift $d"
+    return
+  } elseif {$ans == 2} {
+    set ::msg "Game Over"
+    bindkeys 1
+  } else {
+    set ::msg {}
+  }
+}
+
+proc restart {} {
+  $::game start
+  bindkeys
+}
 #================================================================
 # Layout
 
-set bgDefault seashell
-
-. configure -bg $bgDefault
+tk_setPalette seashell
 
 wm title . "Shift-Merge"
-pack [frame .f -padx 5 -pady 5 -bg $bgDefault]
-pack [label .f.inst -bg $bgDefault \
-	  -text "Use arrow keys to shift, BackSpace or Control-z to Undo"]
+pack [frame .f -padx 5 -pady 5]
+pack [label .f.inst]
+pack [frame .f.pf]
 
-pack [frame .f.tab4 -bg gray80 -bd 2 -relief solid]
+pack [canvas .f.pf.pzl -bd 2 -relief solid]
 
-font create CellFont -family "Comic Sans MS" -size 20
-font create MsgFont  -family Arial -size 14
+set game [pzl::puzzle new -canvas .f.pf.pzl]
 
-for {set i 0} {$i < 4} {incr i} {
-    for {set j 0} {$j < 4} {incr j} {
-	set ndx "$i,$j"
-	set cname ".f.tab4.cell$i$j"
-	set cell($ndx) {}
-	label $cname -textvariable cell($ndx) -bg $cbgpall() -font CellFont \
-	    -width 5 -height 2 -anchor center
-	grid $cname -row $i -column $j
-    }
-}
+.f.inst configure -text $pzl::Instructions
 
-trace add variable cell write changebg
+set prob4 $pzl::Default_Prob4
 
-grid rowconfigure .f.tab4 all -minsize 100
-grid columnconfigure .f.tab4  all -minsize 100
-
-set prob4Default 0.2
-set prob4 $prob4Default
-
-pack [frame .f.prob4 -bg $bgDefault] -pady 10
-pack [scale .f.prob4.sc -orient horizontal -bg $bgDefault \
+pack [scale .f.pf.sc -orient horizontal \
 	  -from 0.0 -to 1.0 -tickinterval 0 \
 	  -length 200 -resolution -1 \
 	  -variable prob4 -showvalue 1 \
+    -command chgprob4 \
 	  -label "Probability of 4 insertion"] \
     -side left -padx 10
-pack [button .f.prob4.reset -text "Set to Default" -bg $bgDefault \
+pack [button .f.pf.reset -text "Set to Default" \
 	  -command resetprob4] -side right -padx 10
 
+font create MsgFont -family Arial -size 14
+
 pack [label .f.msg -textvariable msg -width 30 -font MsgFont \
-	  -fg red -bg $bgDefault] -side left -padx 5 -pady 10
-pack [button .f.but -text "Start New Game" -command restart -bg $bgDefault] \
+	  -fg red] -side left -padx 5 -pady 10
+pack [button .f.but -text "Start New Game" -command restart] \
     -side right -padx 5 -pady 10
 
 event add <<Arrows>> <Up> <Down> <Left> <Right>
 event add <<CellUndo>> <BackSpace> <Control-z>
-
-set undostack {}
 
 restart
