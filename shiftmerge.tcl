@@ -3,7 +3,9 @@
 package require Tcl 8.6
 package require Tk 8.6
 
-source puzzle.tcl
+set ::smdir [file dirname [file normalize $argv0]]
+
+source [file join $::smdir puzzle.tcl]
 
 #================================================================
 # Procedure definitions

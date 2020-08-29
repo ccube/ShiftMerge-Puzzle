@@ -2,7 +2,7 @@
 package require Tcl 8.6
 package require Tk 8.6
 
-source roundRect.tcl
+source [file join $::smdir roundRect.tcl]
 
 namespace eval pzl {
 
