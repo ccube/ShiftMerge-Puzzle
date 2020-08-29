@@ -11,31 +11,17 @@ namespace eval pzl {
   set Default_Prob4 0.2
   set Instructions {Use arrow keys to shift, BackSpace or Control-z to Undo}
 
-  variable Cell_Keys
-  if {! [info exists Cell_Keys] } {
-    for {set i 0} {$i < 4} {incr i} {
-      for {set j 0} {$j < 4} {incr j} {
-         set Cell_Keys(${i}${j}) {}
-      }
-    }
-  }
-
-  variable Valid_Elements
-  if {! [info exists Valid_Elements]} {
-    for {set i 1} {$i < 16} {incr i} {
-      set Valid_Elements([expr {2**$i}]) {}
-    }
-  }
 
   # Constants used to intialize playing field
   # and manipulate canvas
   # Dimensions in pixels
 
   set CellSize 80
-  set CellSpacing 15
+  set StartOffset 3
+  set CellSpacing 16
   set CellRadius 14
   set NormalCnvBg bisque3
-  set WarnCnvBg LightYellow4
+  set WarnCnvBg yellow3
   set OverCnvBg red3
   array set CellBg {
     {}      #FFFFFF
@@ -49,11 +35,22 @@ namespace eval pzl {
     256     #FFBC70
     512     #FFA85C
     1024    #FF9147
-    2048    #A0FF94
-    4096    #7CFF6B
-    8192    #61FF4C
+    2048    #A0FFA0
+    4096    #60F060
+    8192    #10E010
+    16384   #00D000
+    32768   #00B000
   }
-  set CellExtremeBg PaleTurquoise; # when cell element not in CellBg
+
+  variable Cell_Keys
+  if {! [info exists Cell_Keys] } {
+    for {set i 0} {$i < 4} {incr i} {
+      for {set j 0} {$j < 4} {incr j} {
+         set Cell_Keys(${i}${j}) {}
+      }
+    }
+  }
+
   font create CellFont -family "Comic Sans MS" -size 20
 
   # An object of class puzzle contains puzzle state and has
@@ -86,7 +83,7 @@ namespace eval pzl {
     # where cellndx ranges over 00 .. 03 10 .. 13 20 .. 23 30 .. 33
     # and the 1st digit indicates row, 2nd digit indicates column
     # array names pzl::Cell_Keys gives you a list of valid cellndx
-    # array names pzl::Valid_Elements gives you a list of valid elements
+    # array names pzl::CellBg gives you a list of valid elements
     constructor args {
       my variable cells canvas prob4 undostack
 
@@ -98,53 +95,45 @@ namespace eval pzl {
 
       array set argarr $args
 
-      set cell_asl {}
-
       foreach {opt val} $args {
         switch $opt {
-          -cells {
-            set aslength [llength $val]
-            if {$aslength % 2} {
-              error "-cells arg must be list of even length"
-            }
-
-            if {$aslength > 4*4*2} {
-              error "-cells arg list too large (length > 32)"
-            }
-
-            foreach {k v} $val {
-              if {![info exists pzl::Cell_Keys($k)]} {
-                error "-cells arg list key not in pzl::Cell_Keys"
-              }
-              if {![info exists pzl::Valid_Elements($v)]} {
-                error "-cells arg list val not in pzl::Valid_Elements"
-              }
-              set cell_asl $val
-              set cells($k) $v
-            }
-          }
-
           -canvas {
             set cls {}
             if {[catch {set cls [winfo class $val]}] || $cls ne {Canvas}} {
               error "-class arg not a canvas"
             }
             set canvas $val
+            my Canvas_init
           }
-
+          -cells {
+            my Update_cells $val
+          }
           default {
             error "only -cells and -canvas acceptable to pzl::puzzle constructor"
           }
         }
       }
+    } ;# End constructor
 
-      if {$canvas ne {}} {
-        my Canvas_init
-        if {$cell_asl ne {}} {
-          my Canvas_update $cell_asl
+    method Validate_Cells_setlist {csl} {
+      set cslen [llength $csl]
+      if {$cslen % 2} {
+        error "-cells arg must be list of even length"
+      }
+
+      if {$cslen > 4*4*2} {
+        error "-cells arg list too large (length > 32)"
+      }
+
+      foreach {k v} $csl {
+        if {![info exists pzl::Cell_Keys($k)]} {
+          error "-cells arg list key ($k) not in pzl::Cell_Keys"
+        }
+        if {![info exists pzl::CellBg($v)]} {
+          error "-cells arg list val ($v) not valid"
         }
       }
-    } ;# End constructor
+    }
 
     # With no argument returns current value of prob4
     # with a valid value (0 <= $nv <= 1.0), sets prob4
@@ -171,9 +160,10 @@ namespace eval pzl {
 
       set celloffset [expr {$pzl::CellSize + $pzl::CellSpacing}]
       set txtoffset [expr {$pzl::CellSize / 2}]
-      set y $pzl::CellSpacing
+      set startpos [expr {$pzl::CellSpacing + $pzl::StartOffset}]
+      set y $startpos
       for {set i 0} {$i < 4} {incr i} {
-        set x $pzl::CellSpacing
+        set x $startpos
         for {set j 0} {$j < 4} {incr j} {
           set sfx $i$j
           set lrx [expr {$x + $pzl::CellSize}]
@@ -199,11 +189,7 @@ namespace eval pzl {
 
       foreach {sfx val} $kvlist {
         $canvas itemconfigure t$sfx -text $val
-        if {[info exists pzl::CellBg($val)]} {
-          set bg $pzl::CellBg($val)
-        } else {
-          set bg $pzl::CellExtremeBg
-        }
+        set bg $pzl::CellBg($val)
         $canvas itemconfigure r$sfx -fill $bg
       }
     }
@@ -213,15 +199,7 @@ namespace eval pzl {
     # Not exported
     method Update_cells {kvlist} {
       my variable cells canvas
-      #Validate kvlist
-      foreach {k v} $kvlist {
-        if {! [info exists pzl::Cell_Keys($k)]} {
-          error "pzl::puzzle - bad cell name \"$k\" given to method Update_cells"
-        }
-        if {!($v eq {} || [info exists pzl::Valid_Elements($v)])} {
-          error "pzl::puzzle Update_cells - cell \"$k\" has bad element \"$v\""
-        }
-      }
+      my Validate_Cells_setlist $kvlist
 
       array set cells $kvlist
 
@@ -230,15 +208,23 @@ namespace eval pzl {
       }
     } ;# End method update_cells
 
-    method full {} {
+    method load {kvlist} {
+      my variable undostack
+      my Validate_Cells_setlist $kvlist
+      set undostack {}
+      my clear
+      my Update_cells $kvlist
+    } ;# End method load
+
+    method room {} {
       my variable cells
 
       set emptycnt 0
       foreach k [array names cells] {
         if {$cells($k) eq {}} {incr emptycnt}
       }
-      return [expr {! $emptycnt}]
-    } ;# End method full
+      return $emptycnt
+    } ;# End method room
 
     method clear {} {
       my variable cells
@@ -352,7 +338,7 @@ namespace eval pzl {
       set state [array get cells]
 
       if {[my shift $direction] == 0} {return 1}
-      if {! [my full]} {my insert}
+      if {[my room]} {my insert}
       if {! [my playable]} {
         if {$canvas ne {}} {
           $canvas configure -bg $pzl::OverCnvBg
@@ -367,7 +353,15 @@ namespace eval pzl {
     # True if a move can be made, false otherwise
     method playable {} {
       my variable cells
-      if {! [my full]} {return 1}
+      set room [my room]
+      if {$room > 1} {
+        if {$canvas ne {}} {$canvas configure -bg $pzl::NormalCnvBg}
+        return 1
+      }
+
+      if {$canvas ne {}} {
+        $canvas configure -bg $pzl::WarnCnvBg
+      }
 
       set tst [pzl::puzzle new -cells [array get cells]]
 
