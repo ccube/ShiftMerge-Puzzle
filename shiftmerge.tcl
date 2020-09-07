@@ -5,7 +5,14 @@ package require Tk 8.6
 
 set ::smdir [file dirname [file normalize $argv0]]
 
+source [file join $::smdir sourced.tcl]
+namespace path {::src}
+source [file join $::smdir util.tcl]
+
 source [file join $::smdir puzzle.tcl]
+source [file join $::smdir undo.tcl]
+source [file join $::smdir display.tcl]
+source [file join $::smdir double.tcl]
 
 #================================================================
 # Procedure definitions
@@ -21,11 +28,10 @@ proc bindkeys {{gameover 0}} {
 }
 
 proc chgprob4 {p} {
-  $::game prob4 $p
+  $::game setprob4 $p
 }
 proc resetprob4 {} {
-  set ::prob4 $pzl::Default_Prob4
-  $::game prob4 $::prob4
+  $::game setprob4 [$::game dfltprob4]
 }
 
 proc move {d} {
@@ -57,11 +63,13 @@ pack [frame .f.pf]
 
 pack [canvas .f.pf.pzl -bd 2 -relief solid]
 
-set game [pzl::puzzle new -canvas .f.pf.pzl]
+set game [double new]
+oo::objdefine $game mixin display undo
+$game mixconf -canvas .f.pf.pzl
 
-.f.inst configure -text $pzl::Instructions
+.f.inst configure -text [$game instructions]
 
-set prob4 $pzl::Default_Prob4
+set prob4 [$game dfltprob4]
 
 pack [scale .f.pf.sc -orient horizontal \
 	  -from 0.0 -to 1.0 -tickinterval 0 \
