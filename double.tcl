@@ -96,8 +96,8 @@ oo::class create ::double {
 
   method shift {direction} {
     my variable size cells
-    # For Up or Down we're scanning column $i over 4 rows
-    # For Left or Right we're scanning row $i over 4 columns
+    # For Up or Down we're scanning column $i over $size rows
+    # For Left or Right we're scanning row $i over $size columns
     # A given row or column is processed starting at the cell that is
     # furthest in the direction of shift and then working to the other end.
 
@@ -170,9 +170,8 @@ oo::class create ::double {
 
   # True if a move can be made, false otherwise
   method playable {} {
-    classvar NormalCnvBg
-    my variable cells
-    variable WarnCnvBg
+    classvar NormalCnvBg WarnCnvBg
+    my variable cells size
 
     set room [my room]
     if {$room > 1} {
@@ -185,7 +184,7 @@ oo::class create ::double {
     # Note that methods that implement undo and displaying the puzzle
     # are mixins that are directly applied to objects, which arent't
     # mixed into tst.
-    set tst [[self class] new -cells [array get cells]]
+    set tst [[self class] new -size $size -cells [array get cells]]
 
     # note that for non-playable grid nothing changes under shift
     foreach d {Up Down Left Right} {
@@ -239,7 +238,7 @@ oo::class create ::double {
 
     $canvas configure -bg $NormalCnvBg
 
-    set canvsize [expr {$size * $CellSize + 5 * $CellSpacing}]
+    set canvsize [expr {$size * $CellSize + ($size + 1) * $CellSpacing}]
     $canvas configure -width $canvsize -height $canvsize
 
     set celloffset [expr {$CellSize + $CellSpacing}]

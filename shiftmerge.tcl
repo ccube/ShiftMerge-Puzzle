@@ -63,7 +63,7 @@ pack [frame .f.pf]
 
 pack [canvas .f.pf.pzl -bd 2 -relief solid]
 
-set game [double new]
+set game [double new {*}$argv]
 oo::objdefine $game mixin display undo
 $game mixconf -canvas .f.pf.pzl
 
