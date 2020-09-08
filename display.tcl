@@ -25,6 +25,9 @@ oo::class create display {
 
     # Implemented in non-mixin subclass of puzzle
     my Canvas_init
+    if {[llength [self next]]} {
+      next {*}$args
+    }
   } ;# End of method mixconf
 
   method Update_cells {kvlist} {

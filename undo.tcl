@@ -15,7 +15,9 @@ oo::class create ::undo {
 
   method mixconf args {
     set undostack {}
-    next {*}$args
+    if {[llength [self next]]} {
+      next {*}$args
+    }
   } ;# End method mixconf
 
   method push_state {} {
