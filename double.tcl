@@ -1,16 +1,19 @@
 package require Tcl 8.6
-package require Tk 8.6
 
 if {[sourced_before DOUBLE]} {return}
 
 source [file join $::smdir roundRect.tcl]
+source [file join $::smdir util.tcl]
+source [file join $::smdir puzzle.tcl]
 
 oo::class create ::double {
   superclass ::puzzle
 
   classvar Default_Prob4 0.2
   classvar Instructions {Arrow keys to move, BackSpace or Control-z to Undo}
-  classvar CellFont [font create -family "Comic Sans MS" -size 20]
+
+  # set in method Canvas_init so I can debug this without Tk being loaded
+  classvar CellFont {}
 
   # Constants used to intialize playing field
   # and manipulate canvas
@@ -67,11 +70,6 @@ oo::class create ::double {
     }
     return [set prob4 $nv]
   } ;# End method setp4
-
-  method valid_element {el} {
-    classvar CellBg
-    return [info exists CellBg($el)]
-  }
 
   method insert {} {
     my variable cells
@@ -234,6 +232,8 @@ oo::class create ::double {
     classvar NormalCnvBg CellBg
     classvar CellFont
 
+    set CellFont [font create -family "Comic Sans MS" -size 20]
+
     my variable canvas size
 
     $canvas configure -bg $NormalCnvBg
@@ -282,5 +282,9 @@ oo::class create ::double {
     return $Instructions
   }
 
+  method valid_element {e} {
+    classvar CellBg
+    return [info exists CellBg($e)]
+  }
 } ;# End class create double
 source_done DOUBLE

@@ -63,7 +63,11 @@ pack [frame .f.pf]
 
 pack [canvas .f.pf.pzl -bd 2 -relief solid]
 
-set game [double new {*}$argv]
+set args_to_double {}
+if {[set ndx [lsearch $argv -size]] >= 0} {
+  lappend args_to_double -size [lindex $argv [incr $ndx]]
+}
+set game [double new {*}$args_to_double]
 oo::objdefine $game mixin display undo
 $game mixconf -canvas .f.pf.pzl
 
