@@ -169,10 +169,9 @@ oo::class create ::double {
   # True if a move can be made, false otherwise
   method playable {} {
     classvar NormalCnvBg WarnCnvBg
-    my variable cells size
+    my variable cells
 
-    set room [my room]
-    if {$room > 1} {
+    if {[my room] > 1} {
       my setcnvbg $NormalCnvBg
       return 1
     }
@@ -182,7 +181,7 @@ oo::class create ::double {
     # Note that methods that implement undo and displaying the puzzle
     # are mixins that are directly applied to objects, which arent't
     # mixed into tst.
-    set tst [[self class] new -size $size -cells [array get cells]]
+    set tst [[self class] new -cells $cells
 
     # note that for non-playable grid nothing changes under shift
     foreach d {Up Down Left Right} {
@@ -267,8 +266,6 @@ oo::class create ::double {
   # Not exported - meant to be called by display mixin
   method Canvas_update {kvlist} {
     my variable canvas
-    # expect to only be called from Update_cells, so it depends on
-    # it to do kvlist validation
 
     foreach {sfx val} $kvlist {
       classvar CellBg
@@ -280,11 +277,6 @@ oo::class create ::double {
   method instructions {} {
     classvar Instructions
     return $Instructions
-  }
-
-  method valid_element {e} {
-    classvar CellBg
-    return [info exists CellBg($e)]
   }
 } ;# End class create double
 source_done DOUBLE
