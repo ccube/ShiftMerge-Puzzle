@@ -30,11 +30,11 @@ oo::class create display {
     }
   } ;# End of method mixconf
 
-  method Update_cells {kvlist} {
-      next $kvlist
-      # Implemented in non-mixin subclass of puzzle
-      my Canvas_update $kvlist
-  } ;#
+  method Update_cells args {
+    next {*}$args
+    # Implemented in non-mixin subclass of puzzle
+    my Canvas_update {*}$args
+  } ;# End method Update_cells
 } ;# End class create display
 
 source_done DISPLAY

@@ -2,11 +2,59 @@ package require Tcl 8.6
 
 if {[sourced_before UTIL]} {return}
 
+# Return a list of elements of lst indexed by indices
+proc lmndx {lst indices} {
+  set len [llength $lst]
+  return [lmap i $indices {
+    if {$i < 0 || $i >= $len} {
+      error "index ($i) out of range"
+    }
+    lindex $lst $i}]
+} ;# End lmndx
+
+# Example:
+# set foo {a b c d e f g}
+# lmndx $foo {1 0 6}       ;# -> b a g
+
+# Returns a new list by replacing zero or more elements of lst with vals
+# indexed by indices.
+# An error is raised if vals and indices are different lengths
+# or if an index in indices is less than 0 or >= length of lst.
+# The same index may appear multiple times in indices; the last
+# use of it is what takes place.
+proc lmset {lst vals indices} {
+  set lstlen [llength $lst]
+  set vlen   [llength $vals]
+  set indlen [llength $indices]
+  if {$vlen != $indlen} {
+    error "length of vals and indices must be the same"
+  }
+  for {set i 0} {$i < $vlen} {incr i} {
+    set ndx [lindex $indices $i]
+    if {$ndx < 0 || $ndx >= $lstlen} {
+      error "index ($ndx) out of range"
+    }
+    lset lst $ndx [lindex $vals $i]
+  }
+
+  return $lst
+} ;# End lmset
+
+# Example:
+# set foo {a b c d e f g}
+# set newfoo [lmset $foo {foxtrot alpha beta delta bravo} {5 0 1 3 1}]
+# puts $newfoo  ;# -> alpha bravo c delta e foxtrot g
+
+################################################################
 # Stolen from tcllib ooutil.tcl by Donal Fellows
 # but I'm going to give me no rope to hang myself with: if I'm using
 # classvar, I will define it as classvar. Used inside method definition to
 # link class variable "name" (and any others in args) to local variables of
-# the same name
+# the same name. Don't use in classmethods (see below). Class methods
+# already automaticly have access to classvar variables in the class
+# definition and using this in their definition will undo that (link these
+# variables to the class of their class). That's not the namespace you're
+# looking for.
 proc ::oo::Helpers::classvar {name args} {
     # Get a reference to the class's namespace
     set ns [info object namespace [uplevel 1 {self class}]]
@@ -18,7 +66,7 @@ proc ::oo::Helpers::classvar {name args} {
     # Lastly, link the caller's local variables to the class's
     # variables
     uplevel 1 [list namespace upvar $ns {*}$vs]
-}
+} ;# End ::oo::Helpers::classvar
 
 # This classvar works like namespace "variable". Used in define script or as
 # a define subcommand. Takes a name and a required intial value. If
@@ -27,10 +75,12 @@ proc ::oo::Helpers::classvar {name args} {
 # you must at least pass a val of ARRAY to intialize it to an empty array.
 # Note that if you plan to treat the variable as a number (e.g. use incr),
 # you must initialize it to a number
-
-
+#
+# NOTE: These classvars are NOT inherited by subclasses. But are seen
+# by class methods (see below) automaticly (without classvar or my variable)
 proc ::oo::define::classvar {name val} {
   set class [lindex [info level -1] 1]
+  oo::objdefine $class variable $name
   set ns [info object namespace $class]
   set nm "${ns}::$name"
   if {[lindex $val 0] eq "ARRAY"} {
@@ -38,9 +88,34 @@ proc ::oo::define::classvar {name val} {
   } else {
     set $nm $val
   }
-}
+} ;# End ::oo::define::classvar
 
-# Example:
+# Class methods - not passed down to a subclass, but the forwarded
+# method in the class definition is seen by its methods and subclass
+# methods via "my".
+proc ::oo::define::classmethod {name arglist body} {
+  set class [lindex [info level -1] 1]
+  set ns [info object namespace $class]
+  ::oo::objdefine $class method $name $arglist $body
+  ::oo::define $class forward $name ${ns}::my $name
+} ;# End ::oo::define::classmethod
+
+# Example 1:
+# oo::class create foo {
+#   classvar infarr {ARRAY
+#     doc "The foo class is used to ..."
+#     args "..."
+#     errors "..."
+#     notes  "..."
+#   }
+#
+#   classmethod info {k} {
+#     return $infarr($k)
+#   }
+# }
+# foo info doc ;# -> The foo class is used to ...
+
+# Example 2:
 # oo::class create foo {
 #   classvar a 17
 #   classvar b ARRAY
@@ -70,10 +145,10 @@ proc ::oo::define::classvar {name val} {
 #     puts "a: $a $nm calls: $icnt all calls: $totcnt history: {$b($nm)}"
 #   }
 # }
-# foo create x
+# foo create x      ;# -> Class vars: {totcnt a b} \n Instance vars: {icnt nm}
 # x show 5          ;# -> a: 22 x calls: 1 all calls: 1 history: {5}
 # x show 3          ;# -> a: 25 x calls: 2 all calls: 2 history: {5 3}
-# foo create y
+# foo create y      ;# Same as for "foo create x"
 # y show 11         ;# -> a: 36 y calls: 1 all calls: 3 history: {11}
 # x show -7         ;# -> a: 29 x calls: 3 all calls: 4 history: {5 3 -7}
 # y show 100        ;# -> a: 129 y calls: 2 all calls: 5 history: {11 100}
