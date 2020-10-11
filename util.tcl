@@ -2,6 +2,50 @@ package require Tcl 8.6
 
 if {[sourced_before UTIL]} {return}
 
+# Return a list of elements of lst indexed by indices
+proc lmndx {lst indices} {
+  set len [llength $lst]
+  return [lmap i $indices {
+    if {$i < 0 || $i >= $len} {
+      error "index ($i) out of range"
+    }
+    lindex $lst $i}]
+} ;# End lmndx
+
+# Example:
+# set foo {a b c d e f g}
+# lmndx $foo {1 0 6}       ;# -> b a g
+
+# Returns a new list by replacing zero or more elements of lst with vals
+# indexed by indices.
+# An error is raised if vals and indices are different lengths
+# or if an index in indices is less than 0 or >= length of lst.
+# The same index may appear multiple times in indices; the last
+# use of it is what takes place.
+proc lmset {lst vals indices} {
+  set lstlen [llength $lst]
+  set vlen   [llength $vals]
+  set indlen [llength $indices]
+  if {$vlen != $indlen} {
+    error "length of vals and indices must be the same"
+  }
+  for {set i 0} {$i < $vlen} {incr i} {
+    set ndx [lindex $indices $i]
+    if {$ndx < 0 || $ndx >= $lstlen} {
+      error "index ($ndx) out of range"
+    }
+    lset lst $ndx [lindex $vals $i]
+  }
+
+  return $lst
+} ;# End lmset
+
+# Example:
+# set foo {a b c d e f g}
+# set newfoo [lmset $foo {foxtrot alpha beta delta bravo} {5 0 1 3 1}]
+# puts $newfoo  ;# -> alpha bravo c delta e foxtrot g
+
+################################################################
 # Stolen from tcllib ooutil.tcl by Donal Fellows
 # but I'm going to give me no rope to hang myself with: if I'm using
 # classvar, I will define it as classvar. Used inside method definition to
@@ -22,7 +66,7 @@ proc ::oo::Helpers::classvar {name args} {
     # Lastly, link the caller's local variables to the class's
     # variables
     uplevel 1 [list namespace upvar $ns {*}$vs]
-}
+} ;# End ::oo::Helpers::classvar
 
 # This classvar works like namespace "variable". Used in define script or as
 # a define subcommand. Takes a name and a required intial value. If
@@ -44,7 +88,7 @@ proc ::oo::define::classvar {name val} {
   } else {
     set $nm $val
   }
-}
+} ;# End ::oo::define::classvar
 
 # Class methods - not passed down to a subclass, but the forwarded
 # method in the class definition is seen by its methods and subclass
@@ -54,7 +98,7 @@ proc ::oo::define::classmethod {name arglist body} {
   set ns [info object namespace $class]
   ::oo::objdefine $class method $name $arglist $body
   ::oo::define $class forward $name ${ns}::my $name
-}
+} ;# End ::oo::define::classmethod
 
 # Example 1:
 # oo::class create foo {

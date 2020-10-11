@@ -8,7 +8,7 @@ if {[sourced_before UNDO]} {return}
 # stacking systems.
 
 oo::class create ::undo {
-  export undo load move mvcnt
+  export undo move mvcnt
 
   # stack of the contents of cells
   variable undostack
@@ -20,33 +20,25 @@ oo::class create ::undo {
     }
   } ;# End method mixconf
 
-  method push_state {} {
-    my variable cells
-
-    lappend undostack array get cells
-  } ;# End method push_state
-
   method undo {} {
     my variable cells
-    set prev_state [lindex $undostack end]
-    set undostack [lreplace $undostack end end]
-    my Update_cells $prev_state
+    if {[llength $undostack]} {
+      set prev_state [lindex $undostack end]
+      set undostack [lreplace $undostack end end]
+      binary scan $prev_state cu* clst
+      my Update_cells $clst
+    }
   } ;# End method undo
 
   method move {d} {
     my variable cells
-    set state [array get cells]
+    set state [binary format c* $cells]
     set ret [next $d]
     if {! $ret} {
       lappend undostack $state
     }
     return $ret
   } ;# End method move
-
-  method load {kvl} {
-    next $kvl
-    set undostack {}
-  }
 
   method start {} {
     set undostack {}

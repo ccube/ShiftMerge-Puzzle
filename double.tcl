@@ -26,24 +26,13 @@ oo::class create ::double {
   classvar NormalCnvBg bisque3
   classvar WarnCnvBg yellow3
   classvar OverCnvBg red3
-  classvar CellBg {ARRAY
-       {}   #FFFFFF
-        2   #FFFFF5
-        4   #FFFDE0
-        8   #FFF8CC
-       16   #FFF3C2
-       32   #FFE9AD
-       64   #FFDD99
-      128   #FFCE85
-      256   #FFBC70
-      512   #FFA85C
-     1024   #FF9147
-     2048   #A0FFA0
-     4096   #60F060
-     8192   #10E010
-    16384   #00D000
-    32768   #00B000
-  }
+  classvar CellBg {"#FFFFFF" "#FFFFF5" "#FFFDE0" "#FFF8CC" "#FFF3C2" "#FFE9AD"
+                   "#FFDD99" "#FFCE85" "#FFBC70" "#FFA85C" "#FF9147" "#A0FFA0"
+                   "#60F060" "#10E010" "#00D000" "#00C000" "#00B000" "#00A000"
+                   "azure"   "azure"   "azure"   "azure"   "azure"   "azure"
+                   "azure"   "azure"   "azure"   "azure"   "azure"   "azure"
+                   "azure"   "azure"   "azure"   "azure"   "azure"   "azure"
+                  }
 
   # probability of a 4 being inserted
   variable prob4
@@ -72,11 +61,11 @@ oo::class create ::double {
   } ;# End method setp4
 
   method insert {} {
-    my variable cells
+    my variable numcells cells
     set empty {}
-    foreach {k v} [array get cells] {
-      if {$v eq {}} {
-        lappend empty $k
+    for {set i 0} {$i < $numcells} {incr i} {
+      if {[lindex $cells $i] == 0} {
+        lappend empty $i
       }
     }
 
@@ -84,87 +73,48 @@ oo::class create ::double {
 
     if {! $cnt} {error "Attempt to insert into a full grid"}
 
-    set newnum [expr {rand() > $prob4 ? 2 : 4}]
+    set newnum [expr {rand() > $prob4 ? 1 : 2}]
     set cellndx [lindex $empty [expr {int(rand()*$cnt)}]]
 
-    my Update_cells [list $cellndx $newnum]
+    my Update_cells $newnum $cellndx
 
     return [expr $cnt - 1]
   } ;# End method insert
 
-  method shift {direction} {
-    my variable size cells
-    # For Up or Down we're scanning column $i over $size rows
-    # For Left or Right we're scanning row $i over $size columns
-    # A given row or column is processed starting at the cell that is
-    # furthest in the direction of shift and then working to the other end.
+  # Shift the sequence (a list which may be either a row or column of cells)
+  # from the end of the list to the beginning, filling empty spaces (0) and/or
+  # merging same valued neighbors. Returns the result or if nothing was changed
+  # (because there were no spaces and no mergeable neighbors) returns an
+  # empty string.
+  method shift1 {seq} {
+    my variable size
 
-    switch $direction {
-      Up {
-        for {set j 0} {$j < $size} {incr j} {
-          lappend cktemplate "$j\$i"
-        }
-      }
-      Down {
-        for {set j [expr {$size - 1}]} {$j >= 0} {incr j -1} {
-          lappend cktemplate "$j\$i"
-        }
-      }
-      Left {
-        for {set j 0} {$j < $size} {incr j} {
-          lappend cktemplate "\$\{i\}$j"
-        }
-      }
-      Right {
-        for {set j [expr {$size - 1}]} {$j >= 0} {incr j -1} {
-          lappend cktemplate "\$\{i\}$j"
-        }
-      }
-      default {
-        error "bad direction $direction"
+    set vals {}
+    set merge 0
+
+    foreach v $seq {
+      if {$v eq 0} {continue}
+      if {$v eq [lindex $vals end]  && ! $merge} {
+        lset vals end [expr $v + 1]
+        set merge 1
+      } else {
+        lappend vals $v
+        set merge 0
       }
     }
 
-    set changes 0 ;# number of changed rows or columns
-    set csetlist {} ;# an array-set-list of changes
+    set vcnt [llength $vals]
 
-    for {set i 0} {$i < $size} {incr i} {
-      set ckeys [subst $cktemplate]
-      set vals {}
-      set merge 0
-
-      foreach k $ckeys {
-        set v $cells($k)
-        if {$v eq {}} {continue}
-        if {$v eq [lindex $vals end]  && ! $merge} {
-          lset vals end [expr 2*$v]
-          set merge 1
-        } else {
-          lappend vals $v
-          set merge 0
-        }
+    # if vals is empty or full, there's nothing to change for this row/col
+    if {$vcnt == 0 || $vcnt == $size} {
+      return {}
+    } else {
+      while {[llength $vals] < $size} {
+        lappend vals 0
       }
-
-      set vcnt [llength $vals]
-      # if vals is empty or full, there's nothing to change for this row/col
-      if {$vcnt == 0 || $vcnt == $size} {continue}
-
-      for {set k 0} {$k < $size} {incr k} {
-        set nv [expr {$k < $vcnt ? [lindex $vals $k] : {}}]
-        set ndx [lindex $ckeys $k]
-        if {$nv ne $cells($ndx)} {
-          lappend csetlist $ndx $nv
-        }
-      }
-
-      if {[llength $csetlist] == 0} {continue}
-
-      incr changes
-    } ;# End of looping over rows or cols
-
-    my Update_cells $csetlist
-    return $changes
-  } ;# End method shift
+      return $vals
+    }
+  } ;# End method shift1
 
   # True if a move can be made, false otherwise
   method playable {} {
@@ -181,7 +131,7 @@ oo::class create ::double {
     # Note that methods that implement undo and displaying the puzzle
     # are mixins that are directly applied to objects, which arent't
     # mixed into tst.
-    set tst [[self class] new -cells $cells
+    set tst [[self class] new -cells $cells]
 
     # note that for non-playable grid nothing changes under shift
     foreach d {Up Down Left Right} {
@@ -197,8 +147,6 @@ oo::class create ::double {
   # Returns 0 if successful, 1 if nothing moved, 2 if game over
   method move {direction} {
     classvar OverCnvBg
-    set state [array get cells]
-
     if {[my shift $direction] == 0} {return 1}
     if {[my room]} {my insert}
     if {! [my playable]} {
@@ -247,16 +195,16 @@ oo::class create ::double {
     for {set i 0} {$i < $size} {incr i} {
       set x $startpos
       for {set j 0} {$j < $size} {incr j} {
-        set sfx $i$j
+        set suffx [expr $i * $size + $j]
         set lrx [expr {$x + $CellSize}]
         set lry [expr {$y + $CellSize}]
         set tx  [expr {$x + $txtoffset}]
         set ty  [expr {$y + $txtoffset}]
 
         roundRect $canvas $x $y $lrx $lry $CellRadius \
-        -tag r$sfx -fill $CellBg() -outline black -width 2;
+        -tag r$suffx -fill [lindex $CellBg 0] -outline black -width 2;
 
-        $canvas create text $tx $ty -tag t$sfx -font $CellFont
+        $canvas create text $tx $ty -tag t$suffx -font $CellFont
         incr x $celloffset
       }
       incr y $celloffset
@@ -264,13 +212,25 @@ oo::class create ::double {
   } ;# End method Canvas_init
 
   # Not exported - meant to be called by display mixin
-  method Canvas_update {kvlist} {
-    my variable canvas
+  method Canvas_update {vlst {ndxlst {}}} {
+    my variable cells canvas numcells
+    classvar CellBg
+    set loopbody {
+      set val [lindex $cells $i]
+      set txt [expr {$val == 0 ? "" : 1 << $val}]
 
-    foreach {sfx val} $kvlist {
-      classvar CellBg
-      $canvas itemconfigure t$sfx -text $val
-      $canvas itemconfigure r$sfx -fill $CellBg($val)
+      $canvas itemconfigure t$i -text $txt
+      $canvas itemconfigure r$i -fill [lindex $CellBg $val]
+    }
+
+    if {$ndxlst eq {}} {
+      for {set i 0} {$i < $numcells} {incr i} {
+        eval $loopbody
+      }
+    } else {
+      foreach i $ndxlst {
+        eval $loopbody
+      }
     }
   } ;# End method Canvas_update
 
@@ -279,4 +239,5 @@ oo::class create ::double {
     return $Instructions
   }
 } ;# End class create double
+
 source_done DOUBLE
